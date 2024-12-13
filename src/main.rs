@@ -1,8 +1,7 @@
-use std::{f64::consts::PI, path::Path, time::Instant};
+use std::{path::Path, time::Instant};
 
 use image::{Rgb, RgbImage};
 use num_complex::Complex;
-use palette::{FromColor, Lch, Srgb};
 use rand_pcg::{Mcg128Xsl64, Pcg64Mcg};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use rand::prelude::*;
@@ -14,27 +13,28 @@ fn main() {
     const PIX_WIDTH: u32 = 1000;
     const PIX_HEIGHT: u32 = 1000;
     const PIX_LENGTH: u32 = PIX_WIDTH * PIX_HEIGHT;
-    const MAX_ITER: u32 = 255;
+    const MAX_ITER: u32 = 256;
     const SAMPLE_COUNT: usize = 4;
 
     let mut state_top: Vec<u32> = vec![0; (PIX_LENGTH / 2) as usize];
 
     state_top.iter_mut().enumerate().par_bridge().for_each( |p| {
-        let mut iters_total: u32 = 0;
-        for _i in 0..SAMPLE_COUNT {
-            iters_total += mandel_der(get_sample_loc(p.0, PIX_WIDTH as usize, PIX_HEIGHT as usize, true), MAX_ITER);
-        }
-        *p.1 = iters_total / SAMPLE_COUNT as u32;
+        // let mut iters_total: u32 = 0;
+        // for _i in 0..SAMPLE_COUNT {
+        //     iters_total += mandel_der(get_sample_loc(p.0, PIX_WIDTH as usize, PIX_HEIGHT as usize, true), MAX_ITER);
+        // }
+        // *p.1 = iters_total / SAMPLE_COUNT as u32;
+        *p.1 =  mandel_der(get_sample_loc(p.0, PIX_WIDTH as usize, PIX_HEIGHT as usize, false), MAX_ITER);
     });
+
+    println!("iter done");
 
     let mut frame_final = RgbImage::new(PIX_WIDTH, PIX_HEIGHT);
     state_top.iter().enumerate().for_each(|p| {
-        let s = *p.1 as f64 / MAX_ITER as f64;
-        let v = 1.0 - f64::cos(PI * s).powf(2.0);
-        let l = 75.0 - (75.0 * v);
-        let rgb = Srgb::from_color(Lch::new(l, 28.0 + l, (360.0 * s).powf(1.5) % 360.0));
+        let s = (*p.1 as f64).powf(3.0);
+        let v: u8 = (((s * (MAX_ITER as f64).powf(-1.5)) % MAX_ITER as f64) * 255.0) as u8;
+        let color: Rgb<u8> = Rgb([v; 3]);
         let (x, y) = index_to_coord(p.0, PIX_WIDTH, PIX_HEIGHT);
-        let color: Rgb<u8> = Rgb([(rgb.red * 255.0) as u8, (rgb.green * 255.0) as u8, (rgb.blue * 255.0) as u8]);
         frame_final.put_pixel(x, y, color);
         frame_final.put_pixel(x, PIX_HEIGHT - y - 1, color);
     });
@@ -89,8 +89,8 @@ fn index_to_coord(p: usize, width: u32, height: u32) -> (u32, u32) {
 
 fn get_sample_loc(p: usize, width: usize, height: usize, offset: bool) -> Complex<f64> {
     let (x, y) = index_to_coord(p, width as u32, height as u32);
-    let x: f64 = x as f64 * 2.47 - 2.0;
-    let y: f64 = y as f64 * 2.12 - 1.12;
+    let x: f64 = x as f64 / width as f64 * 2.47 - 2.0;
+    let y: f64 = y as f64 / height as f64 * 2.12 - 1.12;
     if !offset {
         return Complex::new(x, y);
     }
