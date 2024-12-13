@@ -33,16 +33,14 @@ fn main() {
         let v = 1.0 - f64::cos(PI * s).powf(2.0);
         let l = 75.0 - (75.0 * v);
         let rgb = Srgb::from_color(Lch::new(l, 28.0 + l, (360.0 * s).powf(1.5) % 360.0));
-        let x = (p.0 as f64 % PIX_WIDTH as f64) as u32;
-        let y = (p.0 as f64 / PIX_WIDTH as f64) as u32;
-        let color: Rgb<f64> = Rgb([rgb.red, rgb.green, rgb.blue]);
-        let color_final: Rgb<u8> = Rgb([(color.0[0] * 255.0) as u8, (color.0[1] * 255.0) as u8, (color.0[2] * 255.0) as u8]);
-        frame_final.put_pixel(x, y, color_final);
-        frame_final.put_pixel(x, PIX_HEIGHT - y - 1, color_final);
+        let (x, y) = index_to_coord(p.0, PIX_WIDTH, PIX_HEIGHT);
+        let color: Rgb<u8> = Rgb([(rgb.red * 255.0) as u8, (rgb.green * 255.0) as u8, (rgb.blue * 255.0) as u8]);
+        frame_final.put_pixel(x, y, color);
+        frame_final.put_pixel(x, PIX_HEIGHT - y - 1, color);
     });
 
     frame_final.save(&Path::new("image.png")).unwrap();
-    
+
     let bottom = Instant::now();
     dbg!(bottom - top);
 }
@@ -85,9 +83,14 @@ fn rand_f64(rand: &mut Mcg128Xsl64) -> f64 {
     (rand.next_u32() / u32::MAX) as f64
 }
 
-fn get_sample_loc(p: usize, pix_width: usize, pix_height: usize, offset: bool) -> Complex<f64> {
-    let x: f64 = (p % pix_width) as f64 / pix_width as f64 * 2.47 - 2.0;
-    let y: f64 = (p / pix_width) as f64 / pix_height as f64 * 2.12 - 1.12;
+fn index_to_coord(p: usize, width: u32, height: u32) -> (u32, u32) {
+    ((p as f64 % width as f64) as u32, (p as f64 / height as f64) as u32)
+}
+
+fn get_sample_loc(p: usize, width: usize, height: usize, offset: bool) -> Complex<f64> {
+    let (x, y) = index_to_coord(p, width as u32, height as u32);
+    let x: f64 = x as f64 * 2.47 - 2.0;
+    let y: f64 = y as f64 * 2.12 - 1.12;
     if !offset {
         return Complex::new(x, y);
     }
