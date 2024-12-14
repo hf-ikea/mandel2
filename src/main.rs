@@ -8,27 +8,33 @@ use rand::prelude::*;
 extern crate image;
 extern crate rayon;
 
-const PIX_WIDTH: u32 = 2000;
-const PIX_HEIGHT: u32 = 2000;
+const PIX_WIDTH: u32 = 1000;
+const PIX_HEIGHT: u32 = 1000;
 const PIX_LENGTH: u32 = PIX_WIDTH * PIX_HEIGHT;
 const MAX_ITER: u32 = 2048;
-const OFFSET: Complex<f64> = Complex::new(-0.2210645946699648 , 0.7311277145449915);
-const ZOOM_LEVEL: f64 = 2048.0;
-//const SAMPLE_COUNT: usize = 4;
+const OFFSET: Complex<f64> = Complex::new(-0.2210645946699648, 0.7311277145449915);
+const ZOOM_LEVEL: f64 = 256.0;
+const SAMPLE_COUNT: usize = 4;
 
 fn main() {
+    if PIX_WIDTH != PIX_HEIGHT {
+        println!("aspect must be square haha");
+        return;
+    }
     let top = Instant::now();
+    let pix_size: f64 = (get_sample_loc(10, 0.0, false) - get_sample_loc(9, 0.0, false)).re;
+    dbg!(pix_size);
     
     //let mut state_top: Vec<f64> = vec![0.0; (PIX_LENGTH / 2) as usize];
     let mut state: Vec<f64> = vec![0.0; PIX_LENGTH as usize];
 
     state.iter_mut().enumerate().par_bridge().for_each( |p| {
-        // let mut iters_total: f64 = 0.0;
-        // for _i in 0..SAMPLE_COUNT {
-        //     iters_total += mandel_der(get_sample_loc(p.0, PIX_WIDTH as usize, PIX_HEIGHT as usize, true), MAX_ITER);
-        // }
-        // *p.1 = iters_total / SAMPLE_COUNT as f64;
-        *p.1 = mandel_der(get_sample_loc(p.0, false), MAX_ITER);
+        let mut iters_total: f64 = 0.0;
+        for _i in 0..SAMPLE_COUNT {
+            iters_total += mandel_der(get_sample_loc(p.0, pix_size, true), MAX_ITER);
+        }
+        *p.1 = iters_total / SAMPLE_COUNT as f64;
+        //*p.1 = mandel_der(get_sample_loc(p.0, false), MAX_ITER);
     });
 
     println!("iter done");
@@ -81,7 +87,7 @@ fn mandel_der(c0: Complex<f64>, max_iter: u32) -> f64 {
     return 0.0;
 }
 
-fn get_sample_loc(p: usize, offset: bool) -> Complex<f64> {
+fn get_sample_loc(p: usize, pix_size: f64, offset: bool) -> Complex<f64> {
     let (x, y) = index_to_coord(p);
     let x: f64 = (x as f64 / PIX_WIDTH as f64 / ZOOM_LEVEL) * 2.47 + OFFSET.re - (2.0 / ZOOM_LEVEL);
     let y: f64 = (y as f64 / PIX_HEIGHT as f64 / ZOOM_LEVEL) * 2.24 - OFFSET.im - (1.12 / ZOOM_LEVEL);
@@ -89,8 +95,8 @@ fn get_sample_loc(p: usize, offset: bool) -> Complex<f64> {
         return Complex::new(x, y);
     }
     let mut rand = Pcg64Mcg::new(p as u128);
-    let x_offset: f64 = rand_f64(&mut rand) * 0.005 * x;
-    let y_offset: f64 = rand_f64(&mut rand) * 0.005 * y;
+    let x_offset: f64 = (rand_f64(&mut rand) * 1.2 - 0.6) * pix_size;
+    let y_offset: f64 = (rand_f64(&mut rand) - 0.5) * pix_size;
     
     Complex::new(x + x_offset, y + y_offset)
 }
@@ -107,5 +113,5 @@ fn get_color(i: f64) -> Rgb<u8> {
 }
 
 fn rand_f64(rand: &mut Mcg128Xsl64) -> f64 {
-    (rand.next_u32() / u32::MAX) as f64
+    rand.next_u32() as f64 / u32::MAX as f64
 }
