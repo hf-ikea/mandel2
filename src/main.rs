@@ -8,12 +8,12 @@ use rand::prelude::*;
 extern crate image;
 extern crate rayon;
 
-const PIX_WIDTH: u32 = 1000;
-const PIX_HEIGHT: u32 = 1000;
+const PIX_WIDTH: u32 = 2000;
+const PIX_HEIGHT: u32 = 2000;
 const PIX_LENGTH: u32 = PIX_WIDTH * PIX_HEIGHT;
 const MAX_ITER: u32 = 2048;
-const OFFSET: Complex<f64> = Complex::new(-0.759, 0.058);
-const ZOOM_LEVEL: f64 = 2.0 / (2.0);
+const OFFSET: Complex<f64> = Complex::new(-0.2210645946699648 , 0.7311277145449915);
+const ZOOM_LEVEL: f64 = 2048.0;
 //const SAMPLE_COUNT: usize = 4;
 
 fn main() {
@@ -83,12 +83,12 @@ fn mandel_der(c0: Complex<f64>, max_iter: u32) -> f64 {
 
 fn get_sample_loc(p: usize, offset: bool) -> Complex<f64> {
     let (x, y) = index_to_coord(p);
-    let x: f64 = x as f64 / PIX_WIDTH as f64 * 2.12 - 1.12;
-    let y: f64 = y as f64 / PIX_HEIGHT as f64 * 2.12 - 1.12;
+    let x: f64 = (x as f64 / PIX_WIDTH as f64 / ZOOM_LEVEL) * 2.47 + OFFSET.re - (2.0 / ZOOM_LEVEL);
+    let y: f64 = (y as f64 / PIX_HEIGHT as f64 / ZOOM_LEVEL) * 2.24 - OFFSET.im - (1.12 / ZOOM_LEVEL);
     if !offset {
         return Complex::new(x, y);
     }
-    let mut rand = Pcg64Mcg::new(p.try_into().unwrap());
+    let mut rand = Pcg64Mcg::new(p as u128);
     let x_offset: f64 = rand_f64(&mut rand) * 0.005 * x;
     let y_offset: f64 = rand_f64(&mut rand) * 0.005 * y;
     
